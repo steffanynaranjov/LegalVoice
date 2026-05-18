@@ -57,7 +57,9 @@ def _add_list_item(doc: DocxDocument, node: dict, ordered: bool) -> None:
                     _apply_marks(run, inline.get("marks", []))
 
 
-def _process_node(doc: DocxDocument, node: dict, ordered: bool = False) -> None:
+def _process_node(doc: DocxDocument, node: dict, ordered: bool = False, depth: int = 0) -> None:
+    if depth > 50:
+        return
     t = node.get("type")
     if t == "heading":
         _add_heading(doc, node)
@@ -71,7 +73,7 @@ def _process_node(doc: DocxDocument, node: dict, ordered: bool = False) -> None:
             _add_list_item(doc, child, ordered=True)
     elif t == "blockquote":
         for child in node.get("content", []):
-            _process_node(doc, child)
+            _process_node(doc, child, depth=depth + 1)
     elif t == "horizontalRule":
         doc.add_paragraph("─" * 60)
 
@@ -117,8 +119,8 @@ async def export_docx(
 
     try:
         docx_bytes = content_to_docx(body.title, body.content)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar el documento: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error interno al generar el documento. Inténtalo de nuevo.")
 
     safe_title = "".join(c if c.isalnum() or c in " .-_" else "_" for c in body.title)[:80]
     filename = f"{safe_title}.docx"

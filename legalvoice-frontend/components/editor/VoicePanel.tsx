@@ -103,8 +103,17 @@ export function VoicePanel({ onInsert }: VoicePanelProps) {
           headers: { 'Content-Type': 'multipart/form-data' },
         })
         setTranscript(prev => prev ? prev + ' ' + data.text : data.text)
-      } catch {
-        setError('Error al transcribir. Inténtalo de nuevo.')
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number; data?: { detail?: string } } })?.response?.status
+        const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+
+        if (status === 413) {
+          setError('El audio es demasiado largo. Graba segmentos de menos de 25 MB.')
+        } else if (status === 400 && detail) {
+          setError(detail)
+        } else {
+          setError('Error al transcribir. Inténtalo de nuevo.')
+        }
       } finally {
         setState('idle')
         setSeconds(0)

@@ -18,7 +18,7 @@ export default function RegisterPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signUp({ email, password })
     if (error) {
-      setError(error.message)
+      setError('No se pudo crear la cuenta. Verifica los datos e inténtalo de nuevo.')
       setLoading(false)
     } else {
       router.push('/dashboard')

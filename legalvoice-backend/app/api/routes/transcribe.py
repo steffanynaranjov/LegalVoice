@@ -1,17 +1,37 @@
-import os
-import time
-from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, Request, UploadFile, File, Depends, HTTPException
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from openai import OpenAI
 from app.core.config import settings
 from app.core.security import get_current_user_id
 
-_AUDIO_DEBUG_DIR = Path("/tmp/lv_audio_debug")
-_AUDIO_DEBUG_DIR.mkdir(exist_ok=True)
-
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 _client: Optional[OpenAI] = None
+
+# 25 MB — límite de Whisper
+MAX_AUDIO_BYTES = 25 * 1024 * 1024
+
+# Firmas de bytes conocidas para formatos de audio válidos
+# Cada tupla es (offset, bytes_esperados)
+_AUDIO_SIGNATURES = [
+    (0, b"\x1a\x45\xdf\xa3"),   # WebM / MKV
+    (0, b"OggS"),                # OGG
+    (4, b"ftyp"),                # MP4 / M4A
+    (0, b"RIFF"),                # WAV
+    (0, b"ID3"),                 # MP3 con tag ID3
+    (0, b"\xff\xfb"),            # MP3 sin tag
+    (0, b"\xff\xf3"),            # MP3 sin tag (variante)
+    (0, b"\xff\xf2"),            # MP3 sin tag (variante)
+]
+
+def _is_valid_audio(data: bytes) -> bool:
+    for offset, signature in _AUDIO_SIGNATURES:
+        end = offset + len(signature)
+        if len(data) >= end and data[offset:end] == signature:
+            return True
+    return False
 
 _CORRECTION_PROMPT = """Eres un corrector de transcripciones de voz. Tu única tarea es corregir errores evidentes de transcripción automática.
 
@@ -44,27 +64,26 @@ def correct_transcript(client: OpenAI, text: str) -> str:
     return corrected.strip()
 
 @router.post("/")
+@limiter.limit("20/minute")
 async def transcribe_audio(
+    request: Request,
     file: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id),
 ):
-    if not file.content_type or not file.content_type.startswith("audio/"):
-        raise HTTPException(status_code=400, detail="El archivo debe ser audio")
-
-    audio_bytes = await file.read()
+    # 1. Leer con límite de tamaño
+    audio_bytes = await file.read(MAX_AUDIO_BYTES + 1)
+    if len(audio_bytes) > MAX_AUDIO_BYTES:
+        raise HTTPException(status_code=413, detail="El audio supera el límite de 25 MB")
 
     if len(audio_bytes) < 1000:
         raise HTTPException(status_code=400, detail="Audio demasiado corto")
 
+    # 2. Validar que los bytes realmente son audio (no confiar en el header)
+    if not _is_valid_audio(audio_bytes):
+        raise HTTPException(status_code=400, detail="El archivo no es un audio válido")
+
     filename = file.filename or "audio.webm"
     content_type = file.content_type or "audio/webm"
-
-    # DEBUG: save audio to disk
-    ext = filename.split(".")[-1]
-    debug_path = _AUDIO_DEBUG_DIR / f"{int(time.time())}_{len(audio_bytes)}bytes.{ext}"
-    debug_path.write_bytes(audio_bytes)
-    print(f"[DEBUG] Audio guardado: {debug_path} | size={len(audio_bytes)} | content_type={content_type}")
-
     client = get_openai_client()
 
     try:
@@ -73,11 +92,7 @@ async def transcribe_audio(
             file=(filename, audio_bytes, content_type),
             language="es",
         )
-        raw_text = transcript.text
-        print(f"[DEBUG] Whisper raw: {repr(raw_text)}")
-
-        corrected = correct_transcript(client, raw_text)
-        print(f"[DEBUG] Corrected:   {repr(corrected)}")
+        corrected = correct_transcript(client, transcript.text)
         return {"text": corrected}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al transcribir: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error al transcribir. Inténtalo de nuevo.")

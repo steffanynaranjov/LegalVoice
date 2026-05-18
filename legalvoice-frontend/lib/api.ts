@@ -2,8 +2,11 @@
 import axios from 'axios'
 import { createClient } from './supabase'
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+if (!API_URL) throw new Error('NEXT_PUBLIC_API_URL no está configurado')
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8000',
+  baseURL: API_URL,
 })
 
 api.interceptors.request.use(async (config) => {

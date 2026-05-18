@@ -1,13 +1,16 @@
 import json
 import re
 from typing import Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException
 from pydantic import BaseModel
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from openai import OpenAI
 from app.api.routes.transcribe import get_openai_client
 from app.core.security import get_current_user_id
 
 router = APIRouter()
+limiter = Limiter(key_func=get_remote_address)
 
 _SYSTEM_PROMPT = """You are a legal translator specializing in Spanish to English translation.
 
@@ -29,22 +32,26 @@ Translation rules:
 Output format: return ONLY the JSON array, no markdown fences, no explanation."""
 
 
-def extract_texts(node: dict) -> list[str]:
+def extract_texts(node: dict, depth: int = 0) -> list[str]:
+    if depth > 50:
+        return []
     texts = []
     if node.get("type") == "text" and node.get("text", "").strip():
         texts.append(node["text"])
     for child in node.get("content", []):
-        texts.extend(extract_texts(child))
+        texts.extend(extract_texts(child, depth + 1))
     return texts
 
 
-def replace_texts(node: dict, translations: list[str], idx: list[int]) -> dict:
+def replace_texts(node: dict, translations: list[str], idx: list[int], depth: int = 0) -> dict:
+    if depth > 50:
+        return node
     result = {k: v for k, v in node.items() if k != "content"}
     if node.get("type") == "text" and node.get("text", "").strip():
         result["text"] = translations[idx[0]]
         idx[0] += 1
     if "content" in node:
-        result["content"] = [replace_texts(child, translations, idx) for child in node["content"]]
+        result["content"] = [replace_texts(child, translations, idx, depth + 1) for child in node["content"]]
     return result
 
 
@@ -76,7 +83,9 @@ class TranslateResponse(BaseModel):
 
 
 @router.post("/", response_model=TranslateResponse)
+@limiter.limit("5/minute")
 async def translate_document(
+    request: Request,
     body: TranslateRequest,
     user_id: str = Depends(get_current_user_id),
 ):
@@ -101,10 +110,7 @@ async def translate_document(
         translations = parse_array_response(raw)
 
         if len(translations) != len(texts):
-            raise HTTPException(
-                status_code=500,
-                detail=f"La traducción devolvió {len(translations)} fragmentos, se esperaban {len(texts)}"
-            )
+            raise HTTPException(status_code=500, detail="Error interno al traducir. Inténtalo de nuevo.")
 
         translated_content = replace_texts(body.content, translations, [0])
 
@@ -126,5 +132,5 @@ async def translate_document(
 
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al traducir: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=500, detail="Error interno al traducir. Inténtalo de nuevo.")
