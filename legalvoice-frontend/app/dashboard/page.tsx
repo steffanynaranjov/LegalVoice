@@ -23,33 +23,49 @@ export default function DashboardPage() {
     : documents
 
   async function handleNewDocument() {
-    const { data } = await api.post('/api/v1/documents/', {
-      title: 'Sin título',
-      folder_id: selectedFolderId ?? undefined,
-    })
-    router.push(`/editor/${data.id}`)
+    try {
+      const { data } = await api.post('/api/v1/documents/', {
+        title: 'Sin título',
+        folder_id: selectedFolderId ?? undefined,
+      })
+      router.push(`/editor/${data.id}`)
+    } catch {
+      alert('Error al crear el documento. Inténtalo de nuevo.')
+    }
   }
 
   async function handleDeleteDocument(id: string) {
     if (!confirm('¿Eliminar este documento?')) return
-    await api.delete(`/api/v1/documents/${id}`)
-    refetchDocs()
+    try {
+      await api.delete(`/api/v1/documents/${id}`)
+      refetchDocs()
+    } catch {
+      alert('Error al eliminar el documento.')
+    }
   }
 
   async function handleCreateFolder(e: React.FormEvent) {
     e.preventDefault()
     if (!newFolderName.trim()) return
-    await api.post('/api/v1/folders/', { name: newFolderName.trim() })
-    setNewFolderName('')
-    setShowNewFolder(false)
-    refetchFolders()
+    try {
+      await api.post('/api/v1/folders/', { name: newFolderName.trim() })
+      setNewFolderName('')
+      setShowNewFolder(false)
+      refetchFolders()
+    } catch {
+      alert('Error al crear la carpeta.')
+    }
   }
 
   async function handleDeleteFolder(id: string) {
     if (!confirm('¿Eliminar esta carpeta?')) return
-    await api.delete(`/api/v1/folders/${id}`)
-    if (selectedFolderId === id) setSelectedFolderId(null)
-    refetchFolders()
+    try {
+      await api.delete(`/api/v1/folders/${id}`)
+      if (selectedFolderId === id) setSelectedFolderId(null)
+      refetchFolders()
+    } catch {
+      alert('Error al eliminar la carpeta.')
+    }
   }
 
   async function handleLogout() {

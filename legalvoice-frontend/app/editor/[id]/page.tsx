@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 export default function EditorPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const [document, setDocument] = useState<Document | null>(null)
+  const [docData, setDocData] = useState<Document | null>(null)
   const [title, setTitle] = useState('Sin título')
   const [content, setContent] = useState<Record<string, unknown>>({})
   const [wordCount, setWordCount] = useState(0)
@@ -22,7 +22,7 @@ export default function EditorPage() {
     api
       .get<Document>(`/api/v1/documents/${id}`)
       .then(({ data }) => {
-        setDocument(data)
+        setDocData(data)
         setTitle(data.title)
         setContent(data.content)
         setWordCount(data.word_count)
@@ -56,7 +56,7 @@ export default function EditorPage() {
     )
   }
 
-  if (!document) return null
+  if (!docData) return null
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
