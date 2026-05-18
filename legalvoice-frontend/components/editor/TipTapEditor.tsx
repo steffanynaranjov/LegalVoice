@@ -1,5 +1,6 @@
 'use client'
 import { useEditor, EditorContent } from '@tiptap/react'
+import { useImperativeHandle, forwardRef } from 'react'
 import StarterKit from '@tiptap/starter-kit'
 import { Underline } from '@tiptap/extension-underline'
 import { TextAlign } from '@tiptap/extension-text-align'
@@ -7,12 +8,17 @@ import { CharacterCount } from '@tiptap/extension-character-count'
 import { Toolbar } from './Toolbar'
 import { WordCount } from './WordCount'
 
+export interface TipTapEditorRef {
+  insertText: (text: string) => void
+}
+
 interface TipTapEditorProps {
   content: Record<string, unknown>
   onChange: (content: Record<string, unknown>, wordCount: number) => void
 }
 
-export function TipTapEditor({ content, onChange }: TipTapEditorProps) {
+export const TipTapEditor = forwardRef<TipTapEditorRef, TipTapEditorProps>(
+  function TipTapEditor({ content, onChange }, ref) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -33,6 +39,13 @@ export function TipTapEditor({ content, onChange }: TipTapEditorProps) {
     },
   })
 
+  useImperativeHandle(ref, () => ({
+    insertText: (text: string) => {
+      if (!editor) return
+      editor.chain().focus().insertContent(text).run()
+    },
+  }))
+
   if (!editor) return null
 
   return (
@@ -46,4 +59,4 @@ export function TipTapEditor({ content, onChange }: TipTapEditorProps) {
       <WordCount editor={editor} />
     </div>
   )
-}
+})

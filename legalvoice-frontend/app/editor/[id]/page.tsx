@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { TipTapEditor } from '@/components/editor/TipTapEditor'
+import { TipTapEditor, type TipTapEditorRef } from '@/components/editor/TipTapEditor'
+import { VoicePanel } from '@/components/editor/VoicePanel'
 import { useAutoSave } from '@/hooks/useAutoSave'
 import api from '@/lib/api'
 import type { Document } from '@/lib/types'
@@ -11,6 +12,8 @@ import { Input } from '@/components/ui/input'
 export default function EditorPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const editorRef = useRef<TipTapEditorRef>(null)
+
   const [docData, setDocData] = useState<Document | null>(null)
   const [title, setTitle] = useState('Sin título')
   const [content, setContent] = useState<Record<string, unknown>>({})
@@ -48,6 +51,10 @@ export default function EditorPage() {
 
   useAutoSave(id, content, wordCount, title)
 
+  const handleInsertTranscript = useCallback((text: string) => {
+    editorRef.current?.insertText(text)
+  }, [])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-gray-400">
@@ -60,7 +67,8 @@ export default function EditorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="bg-white border-b px-6 py-3 flex items-center gap-4">
+      {/* Header */}
+      <header className="bg-white border-b px-6 py-3 flex items-center gap-4 shrink-0">
         <Link href="/dashboard" className="text-sm text-gray-500 hover:text-gray-700">
           ← Dashboard
         </Link>
@@ -73,11 +81,20 @@ export default function EditorPage() {
         <span className="text-xs text-gray-400 ml-auto">{saveStatus}</span>
       </header>
 
-      <main className="flex-1 p-6">
-        <div className="max-w-4xl mx-auto h-full">
-          <TipTapEditor content={content} onChange={handleEditorChange} />
-        </div>
-      </main>
+      {/* Split layout */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left — editor */}
+        <main className="flex-1 overflow-auto p-6">
+          <div className="h-full max-w-3xl mx-auto">
+            <TipTapEditor ref={editorRef} content={content} onChange={handleEditorChange} />
+          </div>
+        </main>
+
+        {/* Right — voice panel */}
+        <aside className="w-80 shrink-0 overflow-auto">
+          <VoicePanel onInsert={handleInsertTranscript} />
+        </aside>
+      </div>
     </div>
   )
 }
