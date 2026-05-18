@@ -92,3 +92,9 @@
     @apply font-sans;
   }
 }
+
+/* TipTap editor styles */
+.ProseMirror {
+  outline: none;
+  min-height: 500px;
+}
