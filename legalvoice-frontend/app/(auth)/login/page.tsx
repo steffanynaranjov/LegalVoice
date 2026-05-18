@@ -1,81 +1,83 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setError(null)
     setLoading(true)
+    setError('')
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError('Correo o contraseña incorrectos')
+      setError('Correo o contraseña incorrectos.')
       setLoading(false)
-      return
+    } else {
+      router.push('/dashboard')
+      router.refresh()
     }
-    router.push('/dashboard')
-    router.refresh()
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-2xl">LegalVoice</CardTitle>
-        <CardDescription>Inicia sesión en tu cuenta</CardDescription>
-      </CardHeader>
-      <form onSubmit={handleLogin}>
-        <CardContent className="space-y-4">
+    <div style={{ display: 'flex', height: '100vh', fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
+      {/* Left brand panel */}
+      <div style={{ width: 420, background: 'linear-gradient(to bottom, #0a1729 0%, #1D3D58 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
+        <img src="/logo.png" alt="LegalVoice" width={52} height={52} style={{ borderRadius: 14, marginBottom: 24 }} />
+        <h1 style={{ fontSize: 26, fontWeight: 700, color: 'white', margin: '0 0 12px', letterSpacing: '-0.5px', textAlign: 'center' }}>LegalVoice</h1>
+        <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.55)', textAlign: 'center', lineHeight: 1.7, maxWidth: 280, margin: 0 }}>Redacta documentos jurídicos con tu voz. El AI escribe, formatea y estructura por ti.</p>
+      </div>
+
+      {/* Right form */}
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f6f6', padding: 48 }}>
+        <div style={{ width: '100%', maxWidth: 380 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 600, color: '#171717', margin: '0 0 6px', letterSpacing: '-0.4px' }}>Iniciar sesión</h2>
+          <p style={{ fontSize: 13.5, color: 'rgba(23,23,23,0.45)', margin: '0 0 32px' }}>Accede a tu cuenta de LegalVoice</p>
+
           {error && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</p>
+            <div style={{ padding: '10px 14px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 8, fontSize: 13, color: '#dc2626', marginBottom: 20 }}>{error}</div>
           )}
-          <div className="space-y-1">
-            <Label htmlFor="email">Correo electrónico</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="password">Contraseña</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-            />
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-col gap-3">
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-          </Button>
-          <p className="text-sm text-gray-600">
+
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: 'rgba(23,23,23,0.6)', marginBottom: 6, letterSpacing: '0.01em' }}>Correo electrónico</label>
+              <input
+                type="email" value={email} onChange={e => setEmail(e.target.value)} required
+                style={{ width: '100%', padding: '10px 13px', background: 'white', border: '1px solid rgba(23,23,23,0.12)', borderRadius: 9, fontSize: 13.5, fontFamily: 'inherit', color: '#171717', outline: 'none', transition: 'border-color 0.15s' }}
+                onFocus={e => (e.target.style.borderColor = '#3ea8ca')}
+                onBlur={e => (e.target.style.borderColor = 'rgba(23,23,23,0.12)')}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 500, color: 'rgba(23,23,23,0.6)', marginBottom: 6 }}>Contraseña</label>
+              <input
+                type="password" value={password} onChange={e => setPassword(e.target.value)} required
+                style={{ width: '100%', padding: '10px 13px', background: 'white', border: '1px solid rgba(23,23,23,0.12)', borderRadius: 9, fontSize: 13.5, fontFamily: 'inherit', color: '#171717', outline: 'none', transition: 'border-color 0.15s' }}
+                onFocus={e => (e.target.style.borderColor = '#3ea8ca')}
+                onBlur={e => (e.target.style.borderColor = 'rgba(23,23,23,0.12)')}
+              />
+            </div>
+            <button
+              type="submit" disabled={loading}
+              style={{ marginTop: 6, padding: '11px', background: '#1D3D58', border: 'none', borderRadius: 10, color: 'white', fontSize: 14, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: loading ? 0.75 : 1, transition: 'opacity 0.15s', boxShadow: '0 4px 14px rgba(29,61,88,0.2)' }}
+            >
+              {loading ? 'Entrando...' : 'Entrar'}
+            </button>
+          </form>
+
+          <p style={{ textAlign: 'center', marginTop: 24, fontSize: 13, color: 'rgba(23,23,23,0.45)' }}>
             ¿No tienes cuenta?{' '}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              Regístrate
-            </Link>
+            <Link href="/register" style={{ color: '#3ea8ca', fontWeight: 500, textDecoration: 'none' }}>Regístrate</Link>
           </p>
-        </CardFooter>
-      </form>
-    </Card>
+        </div>
+      </div>
+    </div>
   )
 }

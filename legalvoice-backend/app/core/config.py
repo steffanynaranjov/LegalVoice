@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_SERVICE_KEY: str
+    OPENAI_API_KEY: str
     CORS_ORIGINS: str = "http://localhost:3000"
 
     @property
