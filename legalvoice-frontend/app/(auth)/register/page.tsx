@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -29,7 +30,7 @@ export default function RegisterPage() {
   return (
     <div style={{ display: 'flex', height: '100vh', fontFamily: "'IBM Plex Sans', system-ui, sans-serif" }}>
       <div style={{ width: 420, background: 'linear-gradient(to bottom, #0a1729 0%, #1D3D58 100%)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 48 }}>
-        <img src="/logo.png" alt="LegalVoice" width={52} height={52} style={{ borderRadius: 14, marginBottom: 24 }} />
+        <Image src="/logo.png" alt="LegalVoice" width={52} height={52} unoptimized style={{ borderRadius: 14, marginBottom: 24 }} />
         <h1 style={{ fontSize: 26, fontWeight: 700, color: 'white', margin: '0 0 12px', letterSpacing: '-0.5px', textAlign: 'center' }}>LegalVoice</h1>
         <p style={{ fontSize: 14.5, color: 'rgba(255,255,255,0.55)', textAlign: 'center', lineHeight: 1.7, maxWidth: 280, margin: 0 }}>Crea tu cuenta y empieza a redactar documentos jurídicos con tu voz.</p>
       </div>

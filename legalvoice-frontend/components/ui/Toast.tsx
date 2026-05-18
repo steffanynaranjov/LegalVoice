@@ -44,7 +44,7 @@ function ToastItem({ toast, onDismiss }: { toast: ToastData; onDismiss: (id: num
     return () => clearTimeout(t)
   }, [toast.id, onDismiss])
 
-  const { bg, border } = COLORS[toast.type]
+  const { border } = COLORS[toast.type]
 
   return (
     <div

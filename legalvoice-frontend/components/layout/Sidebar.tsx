@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
@@ -61,7 +62,7 @@ export function Sidebar({ documents, activeDocId, onNew, onDelete }: SidebarProp
       }}>
         {/* Brand */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 16px 13px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <img src="/logo.png" alt="LegalVoice" width={28} height={28} style={{ borderRadius: 7, flexShrink: 0 }} />
+          <Image src="/logo.png" alt="LegalVoice" width={28} height={28} unoptimized style={{ borderRadius: 7, flexShrink: 0 }} />
           <span style={{ fontSize: 14, fontWeight: 600, color: 'white', letterSpacing: '-0.3px' }}>LegalVoice</span>
         </div>
 
